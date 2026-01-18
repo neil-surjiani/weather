@@ -31,7 +31,9 @@ A clean and minimal **Flutter Weather App UI** built to practice Flutter layouts
 ```
 lib/
 ├── main.dart
-└── weather_screen.dart
+├── weather_screen.dart
+├── weather_info.dart
+└── weather_time.dart
 ```
 
 ---
@@ -44,13 +46,20 @@ lib/
    flutter doctor
    ```
 
-2. Install dependencies:
+2. Set up API key:
+
+   ```bash
+   Create a file lib/secret.dart (this file is gitignored) with:
+   const String apiKey = 'YOUR_API_KEY_HERE';
+   ```
+
+3. Install dependencies:
 
    ```bash
    flutter pub get
    ```
 
-3. Run the app:
+4. Run the app:
 
    ```bash
    flutter run
