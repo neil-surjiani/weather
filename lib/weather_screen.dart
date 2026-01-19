@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:weather/main.dart';
 import 'package:weather/sel_city.dart';
 import 'weather_info.dart';
 import 'weather_time.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:weather/secret.dart';
-import 'sel_city.dart';
 
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({super.key});
@@ -16,7 +14,8 @@ class WeatherScreen extends StatefulWidget {
 }
 
 class _WeatherScreenState extends State<WeatherScreen> {
-  String city = 'Mumbai';
+  bool isLoading = false;
+  String city = 'Mumbai ,IN';
   double temp = 0;
   int humidity = 0;
   int pressure = 0;
@@ -31,6 +30,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   Future getCurrentWeather() async {
     try {
+      setState(() {
+        isLoading = true;
+      });
+
       final result = await http.get(
         Uri.parse(
           "https://api.openweathermap.org/data/2.5/forecast?q=$city&appid=$apiKey",
@@ -40,7 +43,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
       final data = jsonDecode(result.body);
 
       if (data["cod"] != "200") {
-        throw 'An unexpected error has occured.';
+        throw 'An unexpected error has occurred.';
       }
 
       setState(() {
@@ -51,7 +54,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
         weather = data["list"][0]["weather"][0]["main"];
       });
     } catch (e) {
-      throw e.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch weather: $e')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -63,7 +72,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
         centerTitle: true,
         automaticallyImplyLeading: false,
         backgroundColor: const Color.fromRGBO(29, 29, 29, 1),
-        title: Text(
+        title: const Text(
           'Weather App',
           style: TextStyle(
             color: Colors.white,
@@ -74,33 +83,73 @@ class _WeatherScreenState extends State<WeatherScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              setState(() {
-                // refresh logic (API call later)
-              });
+              getCurrentWeather();
             },
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(right: 10, left: 10, bottom: 10),
-              child: Text(
-                city,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-
-            Center(
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            )
+          : Padding(
+              padding: const EdgeInsets.all(10.0),
               child: Column(
                 children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          city.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 40,
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor:
+                                const Color.fromARGB(255, 38, 38, 38),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 26,
+                            ),
+                          ),
+                          onPressed: () async {
+                            final selectedCity =
+                                await Navigator.push<String>(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SelCity()),
+                            );
+
+                            if (selectedCity != null) {
+                              setState(() {
+                                city = selectedCity;
+                              });
+                              getCurrentWeather();
+                            }
+                          },
+                          child: const Text(
+                            'Change',
+                            style:
+                                TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  /// WEATHER CARD
                   SizedBox(
                     width: double.infinity,
                     child: Card(
@@ -111,53 +160,53 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       elevation: 20,
                       child: Column(
                         children: [
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
                             '${(temp - 273.15).toStringAsFixed(1)} °C',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 34,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
                           ),
-                          SizedBox(height: 16),
-                          Icon(Icons.cloud, size: 40, color: Colors.white),
-                          SizedBox(height: 18),
+                          const SizedBox(height: 16),
+                          const Icon(Icons.cloud,
+                              size: 40, color: Colors.white),
+                          const SizedBox(height: 18),
                           Text(
                             weather,
-                            style: TextStyle(fontSize: 22, color: Colors.white),
+                            style: const TextStyle(
+                                fontSize: 22, color: Colors.white),
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                         ],
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      right: 10,
-                      left: 10,
-                      bottom: 10,
-                    ),
-                    child: Align(
-                      alignment: AlignmentGeometry.centerLeft,
-                      child: Text(
-                        "Weather Forecast",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                        ),
+
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: const Text(
+                      "Weather Forecast",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 8),
 
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: List.generate(13, (index) {
                         final hour = (12 + index) % 24;
-                        final time = hour.toString().padLeft(2, '0') + ':00';
+                        final time =
+                            hour.toString().padLeft(2, '0') + ':00';
 
                         return Padding(
                           padding: const EdgeInsets.only(right: 10),
@@ -175,20 +224,20 @@ class _WeatherScreenState extends State<WeatherScreen> {
                   ),
 
                   const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Align(
-                      alignment: AlignmentGeometry.centerLeft,
-                      child: Text(
-                        "Additional Information",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                        ),
+
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: const Text(
+                      "Additional Information",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 8),
 
                   Row(
                     children: [
@@ -199,15 +248,16 @@ class _WeatherScreenState extends State<WeatherScreen> {
                           value: '$humidity %',
                         ),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: WeatherInfoCard(
                           icon: Icons.air,
                           label: 'Wind',
-                          value: '${(wind * 18 / 5).toStringAsFixed(1)} km/h',
+                          value:
+                              '${(wind * 18 / 5).toStringAsFixed(1)} km/h',
                         ),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: WeatherInfoCard(
                           icon: Icons.speed,
@@ -220,49 +270,6 @@ class _WeatherScreenState extends State<WeatherScreen> {
                 ],
               ),
             ),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 24,
-              ), // minimal side gap
-              child: SizedBox(
-                width: double.infinity, // full screen width
-                height: 52, // good button height
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 38, 38, 38),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12), // slight curve
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 12,
-                    ),
-                  ),
-                  onPressed: () async {
-                    final selectedCity = await Navigator.push<String>(
-                      context,
-                      MaterialPageRoute(builder: (_) => const SelCity()),
-                    );
-
-                    if (selectedCity != null) {
-                      setState(() {
-                        city = selectedCity;
-                      });
-                      getCurrentWeather(); // refresh weather
-                    }
-                  },
-                  child: const Text(
-                    'Change City',
-                    style: TextStyle(fontSize: 20, color: Colors.white),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
